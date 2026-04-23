@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from app.ingestion import clone_and_embed
 from app.retrieval import search_codebase
+from app.generate import generate_answer
 
 router = APIRouter()
 
@@ -37,8 +38,10 @@ async def chat_with_repo(request: ChatRequest):
         if not results:
             return {"answer":"I couldn't find any code related to that question.","sources": []}
         
+        final_answer = generate_answer(request.question,results)
+        
         return{
-            
+            "answer":final_answer,
             "sources":results
         }
 
