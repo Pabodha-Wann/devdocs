@@ -5,6 +5,14 @@ from langchain_core.prompts import PromptTemplate
 
 load_dotenv()
 
+my_key = os.getenv("GROQ_API_KEY")
+
+llm = ChatGroq(
+    temperature=0,
+    model="llama-3.3-70b-versatile",
+    api_key=my_key
+)
+
 def generate_answer(query:str,retrieved_chunks:list) -> str:
     print("Formatting code for the AI...")
 
@@ -33,13 +41,7 @@ def generate_answer(query:str,retrieved_chunks:list) -> str:
 
     prompt = PromptTemplate(template=prompt_template,input_variables=["context","question"])
 
-    my_key = os.getenv("GROQ_API_KEY")
-
-    llm = ChatGroq(
-        temperature=0,
-        model_name="llama-3.3-70b-versatile",
-        api_key=my_key
-    )
+    
 
     chain = prompt | llm
 

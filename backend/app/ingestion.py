@@ -5,23 +5,30 @@ import stat
 from git import Repo
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_huggingface import HuggingFaceEmbeddings
-from langchain_community.vectorstores import Chroma
+from langchain_chroma import Chroma
 from langchain_core.documents import Document
+from app.db import db
 
-DB_DIR = os.path.join(os.getcwd(),"chroma_store")
+
 
 def remove_readonly(func,path,excinfo):
     os.chmod(path,stat.S_IWRITE)
     func(path)
 
 def clone_and_embed(url:str):
+
+    db.delete_collection()
+    db.create_collection()
+    print("Cleared previous repo data!")
+
+
     temp_dir = tempfile.mkdtemp()
 
     try:
         print(f'Cloning {url}...')
         Repo.clone_from(url,temp_dir)
 
-        allowed_extensions = ['.js', '.jsx', '.ts', '.tsx', '.py', '.java']
+        allowed_extensions = ['.js', '.jsx', '.ts', '.tsx', '.py', '.java','.md']
         docs = []
 
         for root,dirs,files in os.walk(temp_dir):
@@ -58,9 +65,9 @@ def clone_and_embed(url:str):
 
         # Embedding
         print(f"Generating embeddings for {len(chunks)} chunks...")
-        embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+        
 
-        Chroma.from_documents(chunks,embeddings,persist_directory=DB_DIR)
+        db.add_documents(chunks)
 
         print("Vector database successfully created!")
         return len(docs),len(chunks)
