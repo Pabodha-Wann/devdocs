@@ -1,5 +1,6 @@
 "use client"
 import { useState } from "react";
+import ReactMarkdown from "react-markdown";
 
 export default function Home() {
   
@@ -135,7 +136,46 @@ export default function Home() {
                     ? "bg-indigo-600 text-white rounded-2xl rounded-tr-sm shadow-indigo-600/20" 
                     : "bg-white text-zinc-700 rounded-2xl rounded-tl-sm border border-zinc-100"}`}
                 >
+                  {msg.role === "user" ? (
                   <p className="whitespace-pre-wrap">{msg.content}</p>
+                  ):(
+                    <div className="flex flex-col gap-2">
+                      <ReactMarkdown
+                        components={{
+                          // Formats inline code and large code blocks
+                          code(props) {
+                            const {children, className, node, ...rest} = props
+                            const match = /language-(\w+)/.exec(className || '')
+                            return !match ? (
+                              <code {...rest} className="bg-zinc-100 border border-zinc-200 text-indigo-600 px-1.5 py-0.5 rounded-md text-[13px] font-mono">
+                                {children}
+                              </code>
+                            ) : (
+                              <div className="bg-zinc-900 text-zinc-100 p-4 rounded-xl overflow-x-auto my-3 text-sm font-mono border border-zinc-800 shadow-inner">
+                                <code {...rest} className={className}>
+                                  {children}
+                                </code>
+                              </div>
+                            )
+                          },
+                          // Formats normal paragraphs
+                          p({children}) {
+                            return <p className="mb-2 last:mb-0">{children}</p>
+                          },
+                          // Formats bullet points
+                          ul({children}) {
+                            return <ul className="list-disc ml-4 mb-2">{children}</ul>
+                          },
+                          // Formats numbered lists
+                          ol({children}) {
+                            return <ol className="list-decimal ml-4 mb-2">{children}</ol>
+                          }
+                        }}
+                      >
+                        {msg.content}
+                      </ReactMarkdown>
+                    </div>
+                  )}
                 </div>
               </div>
             ))
