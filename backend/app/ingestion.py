@@ -43,6 +43,13 @@ def is_binary_file(file_path:str) -> bool:
 
 def clone_and_embed(url:str):
 
+    # Validate URL
+    if not url:
+        raise Exception("Repository URL cannot be empty")
+    
+    if not isinstance(url, str):
+        raise Exception("Repository URL must be a string")
+
     db.delete_collection()
     db.create_collection()
     print("Cleared previous repo data!")
@@ -52,7 +59,11 @@ def clone_and_embed(url:str):
 
     try:
         print(f'Cloning {url}...')
-        Repo.clone_from(url,temp_dir)
+
+        try:
+            Repo.clone_from(url,temp_dir)
+        except Exception as clone_error:
+            raise Exception(f"Failed to clone repository: {str(clone_error)}. Check that the URL is a valid git repository.")
 
         # allowed_extensions = ['.js', '.jsx', '.ts', '.tsx', '.py', '.java','.md']
 
