@@ -1,5 +1,3 @@
-from langchain_huggingface import HuggingFaceEmbeddings
-from langchain_chroma import Chroma
 from app.db import db
 
 
@@ -22,12 +20,3 @@ def search_codebase(query:str,k : int=5):
 
     print(f"Found {len(formatted_results)} matching chunks!")
     return formatted_results
-
-
-
-
-
-
-
-
-    

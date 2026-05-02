@@ -13,7 +13,7 @@ llm = ChatGroq(
     api_key=my_key
 )
 
-def generate_answer(query:str,retrieved_chunks:list) -> str:
+def generate_answer(chat_history:list,retrieved_chunks:list) -> str:
     print("Formatting code for the AI...")
 
     if not retrieved_chunks:
@@ -24,12 +24,26 @@ def generate_answer(query:str,retrieved_chunks:list) -> str:
         for chunk in retrieved_chunks
     ])
 
+    # convert history ist into readable text
+    history_text = ""
+    for msg in chat_history[:-1]: #skip last message
+        role = "Human" if msg["role"] == "user" else "AI"
+        history_text += f"{role}:{msg['content']}\n"
+
+    current_question = chat_history[-1]["content"]
+
     prompt_template = """
         You are a senior software engineer analyzing a codebase.
         Use the following pieces of retrieved code to answer the user's question.
+
+        You have been provided with the Chat History of this conversation. Use it to understand context (like if the user says "how do I run it?", use the history to figure out what "it" is).
+
         If the answer is not in the code provided, just say "I cannot find the answer in the retrieved code files."
         Do not guess or make up code. 
         Explain your answer clearly and reference the file names when applicable.
+
+        Chat History:
+        {history}
         
         Context Code:
         {context}
@@ -39,13 +53,20 @@ def generate_answer(query:str,retrieved_chunks:list) -> str:
         Answer:
     """
 
-    prompt = PromptTemplate(template=prompt_template,input_variables=["context","question"])
+    prompt = PromptTemplate(
+        template=prompt_template,
+        input_variables=["context","question"]
+    )
 
     
 
     chain = prompt | llm
 
-    response = chain.invoke({"context":context_text,"question":query})
+    response = chain.invoke({
+        "history":history_text,
+        "context":context_text,
+        "question":current_question
+    })
 
     return response.content
 

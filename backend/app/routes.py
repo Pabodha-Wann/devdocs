@@ -3,6 +3,7 @@ from pydantic import BaseModel
 from app.ingestion import clone_and_embed
 from app.retrieval import search_codebase
 from app.generate import generate_answer
+from typing import List,Dict
 
 router = APIRouter()
 
@@ -11,7 +12,7 @@ class RepoRequest(BaseModel):
     url:str
 
 class ChatRequest(BaseModel):
-    question:str
+    messages:List[Dict[str,str]]
 
 @router.post("/ingest-repo")
 async def ingest_repo(request:RepoRequest):
@@ -19,7 +20,7 @@ async def ingest_repo(request:RepoRequest):
 
         files_scanned,chunks_created = clone_and_embed(request.url)
         return{
-            "message":"Repository successfully embedded into Chroma Store!",
+            "message":"Repository successfully embedded into pgVector Store!",
             "files_scanned": files_scanned,
             "chunks_created": chunks_created
 
@@ -33,12 +34,26 @@ async def ingest_repo(request:RepoRequest):
 @router.post("/chat")
 async def chat_with_repo(request: ChatRequest):
     try:
-        results = search_codebase(request.question)
+        # exact the entire chat history sent
+        chat_history = request.messages
+
+        if not chat_history:
+            raise HTTPException(status_code=400,detail="No messages provided")
+        
+        # get the very last message
+        current_question = chat_history[-1]["content"]
+
+        # search the database using ONLY current question
+        results = search_codebase(current_question)
 
         if not results:
-            return {"answer":"I couldn't find any code related to that question.","sources": []}
+            return {
+                "answer":"I couldn't find any code related to that question.",
+                "sources": []
+            }
         
-        final_answer = generate_answer(request.question,results)
+        # pass the whole history
+        final_answer = generate_answer(chat_history,results)
         
         return{
             "answer":final_answer,
