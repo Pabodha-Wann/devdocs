@@ -4,7 +4,9 @@ export async function POST(req:Request){
     try{
         const { url } = await req.json();
 
-        const pythonResponse =  await fetch('http://127.0.0.1:8000/api/ingest-repo',{
+        const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:8000';
+
+        const pythonResponse =  await fetch(`${backendUrl}/api/ingest-repo`,{
             method:"POST",
             headers:{'Content-Type':"application/json"},
             body:JSON.stringify({url})
