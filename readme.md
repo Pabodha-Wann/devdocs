@@ -16,6 +16,26 @@ An AI-powered documentation assistant that uses RAG (Retrieval-Augmented Generat
 2. **Retrieval:** When a user asks a question, the system finds relevant code snippets using vector similarity search.
 3. **Generation:** Groq processes the question and the retrieved code to provide an accurate technical answer.
 
+```mermaid
+graph TD
+    subgraph Ingestion_Phase
+    A[Source Code] --> B[Text Chunking]
+    B --> C[HuggingFace Embedding - 384d]
+    C --> D[(Neon pgvector Store)]
+    end
+
+    subgraph Retrieval_Phase
+    E[User Query] --> F[Embed Query]
+    F --> G{Cosine Similarity Search}
+    D -.-> G
+    end
+
+    subgraph Generation_Phase
+    G --> H[Top-K Relevant Chunks]
+    H --> I[Groq Llama 3 LLM]
+    I --> J[Final Answer + Sources]
+    end
+
 ## 🚀 Local Setup
 
 ### 1. Backend
@@ -39,3 +59,4 @@ An AI-powered documentation assistant that uses RAG (Retrieval-Augmented Generat
 - **Backend:** Hosted on Render.
 - **Frontend:** Hosted on Vercel.
 - **Database:** Managed by Neon.
+```
