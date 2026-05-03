@@ -123,8 +123,12 @@ def clone_and_embed(url:str):
         # Embedding
         print(f"Generating embeddings for {len(chunks)} chunks...")
         
-
-        db.add_documents(chunks)
+        # Send chunks to HuggingFace/Neon in batches of 50 to avoid Payload limits
+        batch_size = 50
+        for i in range(0, len(chunks), batch_size):
+            batch = chunks[i : i + batch_size]
+            print(f"Uploading batch {(i//batch_size) + 1}...")
+            db.add_documents(batch)
 
         print("Vector database successfully created!")
         return len(docs),len(chunks)
