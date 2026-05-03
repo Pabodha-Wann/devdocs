@@ -35,6 +35,7 @@ graph TD
     H --> I[Groq Llama 3 LLM]
     I --> J[Final Answer + Sources]
     end
+```
 
 ## 🚀 Local Setup
 
@@ -59,4 +60,7 @@ graph TD
 - **Backend:** Hosted on Render.
 - **Frontend:** Hosted on Vercel.
 - **Database:** Managed by Neon.
+
+```
+
 ```
