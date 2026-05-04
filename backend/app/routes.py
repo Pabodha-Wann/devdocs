@@ -4,6 +4,7 @@ from app.ingestion import clone_and_embed
 from app.retrieval import search_codebase
 from app.generate import generate_answer
 from typing import List,Dict
+import re
 
 router = APIRouter()
 
@@ -14,8 +15,26 @@ class RepoRequest(BaseModel):
 class ChatRequest(BaseModel):
     messages:List[Dict[str,str]]
 
+
+def validate_github_url(url: str) -> bool:
+    """Only allow GitHub repos"""
+    github_pattern = r'^https://github\.com/[\w-]+/[\w._-]+(?:\.git)?/?$'
+    return bool(re.match(github_pattern, url))
+
+
+
 @router.post("/ingest-repo")
 async def ingest_repo(request:RepoRequest):
+
+    if not validate_github_url(request.url):
+        raise HTTPException(
+            status_code=400, 
+            detail="Invalid GitHub URL. Format: https://github.com/user/repo"
+        )
+    
+    if len(request.url) > 200:
+        raise HTTPException(status_code=400, detail="URL too long")
+    
     try:
 
         files_scanned,chunks_created = clone_and_embed(request.url)

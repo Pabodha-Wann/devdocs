@@ -13,7 +13,7 @@ export async function POST(req:Request){
         })
 
         const data = await pythonResponse.json()
-        return NextResponse.json(data)
+        return NextResponse.json(data,{ status : pythonResponse.status})
 
     }catch(error){
         return NextResponse.json(

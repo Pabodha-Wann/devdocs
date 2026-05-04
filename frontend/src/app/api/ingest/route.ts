@@ -11,18 +11,15 @@ export async function POST(req:Request){
             headers:{'Content-Type':"application/json"},
             body:JSON.stringify({url})
         })
-
-        if (!pythonResponse.ok) {
-            const errorText = await pythonResponse.text();
-            throw new Error(`Backend error: ${pythonResponse.status}`);
-        }
-
         const data = await pythonResponse.json()
+
         return NextResponse.json(data,{ status : pythonResponse.status})
 
     }catch(error){
+        console.error("Ingest API error:", error);
+        
         return NextResponse.json(
-            {error:"Failed to connect python backend"},
+            {error:"Failed connect to python backend"},
             {status:500}
         )
     }

@@ -34,7 +34,7 @@ export default function Home() {
 
         setMessages([]);
       } else {
-        setIngestMessage(`Error: ${data.detail || data.error || 'Failed to ingest'}`);
+        setIngestMessage(`${data.detail || data.error || 'Failed to ingest'}`);
       }
 
 
