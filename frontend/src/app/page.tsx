@@ -18,7 +18,7 @@ export default function Home() {
     if (!repoUrl.trim()) return;
     
     setIsIngesting(true);
-    setIngestMessage("Downloading and processing repository... this may take a minute.");
+    setIngestMessage("⏳ Waking up serverless database engines and cloning files... this may take up to a minute.");
 
     try {
       const response = await fetch("/api/ingest", {
@@ -34,7 +34,7 @@ export default function Home() {
 
         setMessages([]);
       } else {
-        setIngestMessage(`${data.detail || data.error || 'Failed to ingest'}`);
+        setIngestMessage("Failed to connect to server.");
       }
 
 
@@ -58,7 +58,7 @@ export default function Home() {
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: newMessages })
+        body: JSON.stringify({ messages: newMessages, url: repoUrl})
       })
 
       const data = await response.json()
