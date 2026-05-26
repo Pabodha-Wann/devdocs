@@ -1,83 +1,168 @@
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
-from app.ingestion import clone_and_embed
-from app.retrieval import search_codebase
-from app.generate import generate_answer
+from pydantic import BaseModel,field_validator,Field
 from typing import List,Dict
 import re
+import logging
+from uuid import uuid4
 
+from config import GITHUB_URL_PATTERN
+from exceptions import DevDocsError,ERROR_STATUS_CODES
+from app.ingestion import clone_and_embed
+from app.retrieval import search_codebase
+from app.llm import llm
+
+
+logger = logging.getLogger(__name__)
 router = APIRouter()
 
  
-class RepoRequest(BaseModel):
-    url:str
+class IngestRepoRequest(BaseModel):
+    url:str = Field(...,max_length=200)
 
-class ChatRequest(BaseModel):
-    messages:List[Dict[str,str]]
+    @field_validator('url')
+    @classmethod
+    def validate_url(cls,v:str) -> str:
+        v = v.strip()
+        if not re.match(GITHUB_URL_PATTERN,v):
+            raise ValueError(
+                'Invalid GitHub URL. Use: https://github.com/owner/repo'
+            )
+        return v.strip('/')
 
 
-def validate_github_url(url: str) -> bool:
-    """Only allow GitHub repos"""
-    github_pattern = r'^https://github\.com/[\w-]+/[\w._-]+(?:\.git)?/?$'
-    return bool(re.match(github_pattern, url))
+class ChatMessage(BaseModel):
+    role:str
+    content: str = Field(..., min_length=1, max_length=5000)
 
-
-
-@router.post("/ingest-repo")
-async def ingest_repo(request:RepoRequest):
-
-    if not validate_github_url(request.url):
-        raise HTTPException(
-            status_code=400, 
-            detail="Invalid GitHub URL. Format: https://github.com/user/repo"
-        )
+    @field_validator('role')
+    @classmethod
+    def validate_role(cls,v:str)->str:
+        if v not in ('user','assistant'):
+            raise ValueError("Role must be 'user' or 'assistant'")
+        return v
     
-    if len(request.url) > 200:
-        raise HTTPException(status_code=400, detail="URL too long")
-    
+class ChatWithRepoRequest(BaseModel):
+    messages: List[ChatMessage] = Field(...,min_items=1)
+
+
+    @field_validator('messages')
+    @classmethod
+    def validate_last_message(cls,v:List[ChatMessage])->  List[ChatMessage]:
+        if v[-1].role != 'user':
+            raise ValueError("Last message must be from user")
+        return v
+
+
+# Response models
+class CodeChunk(BaseModel):
+    source: str
+    content: str
+
+class IngestRepoResponse(BaseModel):
+    message: str
+    files_scanned: int
+    chunks_created: int
+    status: str = "success"
+
+class ChatResponse(BaseModel):
+    answer: str
+    sources : List[CodeChunk]
+    status: str = "success"
+
+class ErrorResponse(BaseModel):
+    status: str = "error"
+    error_code: str
+    message: str
+    request_id: str
+
+
+
+
+@router.post("/ingest-repo",response_model=IngestRepoResponse)
+async def ingest_repo(request:IngestRepoRequest):
+
+    request_id = str(uuid4())[:8]
+
     try:
+        logger.info(f"[{request_id}] Ingest:{request.url}")
 
+    
         files_scanned,chunks_created = clone_and_embed(request.url)
+
         return{
             "message":"Repository successfully embedded into pgVector Store!",
             "files_scanned": files_scanned,
             "chunks_created": chunks_created
-
         }
-
-
-    except Exception as e:
-        raise HTTPException(status_code=400,detail=str(e))
+    
+    except DevDocsError as e:
+        logger.warning(f"[{request_id}] {e.code}")
+        raise HTTPException(
+            status_code=ERROR_STATUS_CODES.get(type(e),400),
+            detail=e.message
+        )
     
 
-@router.post("/chat")
-async def chat_with_repo(request: ChatRequest):
-    try:
-        # exact the entire chat history sent
-        chat_history = request.messages
-
-        if not chat_history:
-            raise HTTPException(status_code=400,detail="No messages provided")
-        
-        # get the very last message
-        current_question = chat_history[-1]["content"]
-
-        # search the database using ONLY current question
-        results = search_codebase(current_question)
-
-        if not results:
-            return {
-                "answer":"I couldn't find any code related to that question.",
-                "sources": []
-            }
-        
-        # pass the whole history
-        final_answer = generate_answer(chat_history,results)
-        
-        return{
-            "answer":final_answer,
-            "sources":results
-        }
 
     except Exception as e:
-        raise HTTPException(status_code=400,detail=str(e))
+        logger.error(f"[{request_id}] Unexpected error: {str(e)}",exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail="Internal server error"
+        )
+    
+
+@router.post("/chat",response_model=ChatResponse)
+async def chat_with_repo(request: ChatWithRepoRequest):
+
+    request_id = str(uuid4())[:8]
+
+    try:
+        logger.info(f"[{request_id}] Chat request")
+
+        # Convert Pydantic models to dicts
+        messages = [msg.model_dump() for msg in request.messages]
+
+        current_question = messages[-1]["content"]
+        sources = search_codebase(current_question)
+
+        if not sources:
+            return ChatResponse(
+                answer="I couldn't find any code related to that question.",
+                sources= []
+            )
+
+     
+        final_answer = llm.generate_answer(messages,sources)
+
+        logger.info(f"[{request_id}] Success")
+        
+        return ChatResponse(
+            answer = final_answer,
+            sources =[
+                CodeChunk(source=s["source"], content=s["content"])
+                for s in sources
+            ]
+        )
+
+    except DevDocsError as e:
+        logger.warning(f"[{request_id}] {e.code}")
+
+        raise HTTPException(
+            status_code=ERROR_STATUS_CODES.get(type(e),400),
+            detail=e.message
+        )
+
+    except Exception as e:
+        logger.error(f"[{request_id}] Unexpected error: {str(e)}", exc_info=True)
+
+        raise HTTPException(
+            status_code=500,
+            detail="Internal server error"
+        )
+
+
+@router.get("/health")
+async def health_check():
+    """Health check"""
+    return {"status": "ok"}

@@ -55,7 +55,7 @@ def clone_repository(url:str) -> str:
         raise InvalidRepositoryError("Repository URL must be a string")
 
     db.delete_collection()
-    db.create_collection()
+
     print("Cleared previous repo data!")
 
 
