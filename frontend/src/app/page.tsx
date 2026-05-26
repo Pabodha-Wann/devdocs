@@ -13,6 +13,8 @@ export default function Home() {
   const [isIngesting, setIsIngesting] = useState(false)
   const [ingestMessage, setIngestMessage] = useState("")
 
+  const [activeRepo, setActiveRepo] = useState("")
+
  
   const handleIngest = async () => {
     if (!repoUrl.trim()) return;
@@ -31,7 +33,7 @@ export default function Home() {
 
       if (response.ok) {
         setIngestMessage(`Success! Embedded ${data.files_scanned} files into ${data.chunks_created} chunks.`);
-
+        setActiveRepo(repoUrl);
         setMessages([]);
       } else {
         setIngestMessage("Failed to connect to server.");
@@ -48,6 +50,10 @@ export default function Home() {
 
   const sendMessage = async() => {
     if(!input.trim()) return;
+    if(!activeRepo) {
+      alert("Please ingest a repository successfully before initiating a chat.");
+      return;
+    }
 
     const newMessages = [...messages, {role: "user", content: input}]
     setMessages(newMessages)
@@ -58,7 +64,7 @@ export default function Home() {
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: newMessages, url: repoUrl})
+        body: JSON.stringify({ messages: newMessages, url: activeRepo})
       })
 
       const data = await response.json()

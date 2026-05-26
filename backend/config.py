@@ -1,5 +1,6 @@
 import os
 from dotenv import load_dotenv
+from langchain_text_splitters import Language
 
 load_dotenv()
 
@@ -38,5 +39,25 @@ BINARY_EXTENSIONS = {
     '.exe', '.dll', '.so', '.pyc', '.pdf', '.lock', '.map'
 }
 
+IGNORED_FILES = {
+    "package-lock.json", 
+    "yarn.lock", 
+    "pnpm-lock.yaml", 
+    ".env", 
+    ".gitignore",
+    "tsconfig.json"
+}
 
 GITHUB_URL_PATTERN = r'^https://github\.com/[\w-]+/[\w._-]+(?:\.git)?/?$'
+
+EXTENSION_TO_LANGUAGE = {
+    ".py": Language.PYTHON,
+    ".js": Language.JS,
+    ".jsx": Language.JS,
+    ".ts": Language.TS,
+    ".tsx": Language.TS,
+    ".go": Language.GO,
+    ".cpp": Language.CPP,
+    ".html": Language.HTML,
+    # Any extension not here fall back to normal text splitting
+}

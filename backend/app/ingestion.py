@@ -3,7 +3,7 @@ import tempfile
 import shutil
 import stat
 from git import Repo
-from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain_text_splitters import RecursiveCharacterTextSplitter,Language
 from langchain_core.documents import Document
 from git.exc import GitCommandError
 from app.db import db
@@ -12,7 +12,7 @@ from typing import Tuple
 
 from config import (
     CHUNK_SIZE, CHUNK_OVERLAP, BATCH_SIZE, MAX_FILE_SIZE,
-    BLOCKED_DIRS, BINARY_EXTENSIONS
+    BLOCKED_DIRS, BINARY_EXTENSIONS,EXTENSION_TO_LANGUAGE,IGNORED_FILES
 )
 
 from exceptions import (
@@ -89,6 +89,9 @@ def extract_code_files(repo_path: str) -> list[Document]:
                 
                 for file in files:
 
+                    if file in IGNORED_FILES:
+                        continue
+
                     file_path = os.path.join(root,file)
 
                     # Skipping binary files
@@ -135,7 +138,7 @@ def chunk_documents(documents: list[Document],url: str) -> list[Document]:
     try:
         logger.info(f"Chunking {len(documents)} documents...")
        
-        enhanced_docs = []
+        all_chunks = []
 
         for doc in documents:
             file_path = doc.metadata["source"]
@@ -143,6 +146,7 @@ def chunk_documents(documents: list[Document],url: str) -> list[Document]:
             # Extract folder info
             folders = os.path.dirname(file_path) # Get all folders except filename
             file_name = os.path.basename(file_path)
+            ext = os.path.splitext(file_name)[1].lower()
 
             # Create enhanced document with path info
             enhanced_doc = Document(
@@ -156,22 +160,37 @@ def chunk_documents(documents: list[Document],url: str) -> list[Document]:
                 }
             )
 
-            enhanced_docs.append(enhanced_doc)
+            # enhanced_docs.append(enhanced_doc)
 
+            # Smart rotig engine
+            if ext in EXTENSION_TO_LANGUAGE:
+                target_lang = EXTENSION_TO_LANGUAGE[ext]
+                logger.debug(f"Using smart language splitter ({target_lang}) for: {file_name}")
 
-        # Splitting
-        splitter = RecursiveCharacterTextSplitter(
-            chunk_size=CHUNK_SIZE,
-            chunk_overlap=CHUNK_OVERLAP,
-            separators=["\n\nclass ", "\n\ndef ", "\n\n", "\n", " ", ""]
-        )
-        chunks = splitter.split_documents(enhanced_docs)
-        logger.info(f"Created {len(chunks)} chunks")
-        return chunks
+                splitter=RecursiveCharacterTextSplitter.from_language(
+                    language=target_lang,
+                    chunk_size = CHUNK_SIZE,
+                    chunk_overlap=CHUNK_OVERLAP
+                )
+            
+            else:
+                logger.debug(f"Falling back to text splitter for: {file_name}")
+                # Splitting
+                splitter = RecursiveCharacterTextSplitter(
+                    chunk_size=CHUNK_SIZE,
+                    chunk_overlap=CHUNK_OVERLAP,
+                    separators=["\n\nclass ", "\n\ndef ", "\n\n", "\n", " ", ""]
+                )
+
+            file_chunks = splitter.split_documents([enhanced_doc])
+            all_chunks.extend(file_chunks)
+
+        logger.info(f"Created total of {len(all_chunks)} smart code chunks")
+        return all_chunks
 
     except Exception as e:
         logger.error(f"Chunking error: {str(e)}")
-        raise chunks
+        raise e
 
 
 
