@@ -41,9 +41,19 @@ class ChatMessage(BaseModel):
             raise ValueError("Role must be 'user' or 'assistant'")
         return v
     
+
+
 class ChatWithRepoRequest(BaseModel):
+    repo_url: str = Field(..., max_length=200)
     messages: List[ChatMessage] = Field(...,min_items=1)
 
+    @field_validator('repo_url')
+    @classmethod
+    def validate_repo_url(cls, v: str) -> str:
+        v = v.strip()
+        if not re.match(GITHUB_URL_PATTERN, v):
+            raise ValueError('Invalid GitHub URL context.')
+        return v.strip('/')
 
     @field_validator('messages')
     @classmethod
@@ -51,6 +61,8 @@ class ChatWithRepoRequest(BaseModel):
         if v[-1].role != 'user':
             raise ValueError("Last message must be from user")
         return v
+
+
 
 
 # Response models
@@ -125,7 +137,7 @@ async def chat_with_repo(request: ChatWithRepoRequest):
         messages = [msg.model_dump() for msg in request.messages]
 
         current_question = messages[-1]["content"]
-        sources = search_codebase(current_question)
+        sources = search_codebase(query=current_question,repo_url=request.repo_url)
 
         if not sources:
             return ChatResponse(
@@ -167,3 +179,13 @@ async def chat_with_repo(request: ChatWithRepoRequest):
 async def health_check():
     """Health check"""
     return {"status": "ok"}
+
+
+@router.delete("/clear-database-completely")
+async def clear_database():
+    try:
+        from app.db import db
+        db.delete_collection()
+        return {"message": "Neon database wiped clean successfully!"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

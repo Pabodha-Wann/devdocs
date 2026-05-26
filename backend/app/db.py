@@ -44,15 +44,34 @@ class VectorDB:
     
 
     """Search for similar documents"""
-    def similarity_search(self,query:str,k:int=5) -> List[Document]:
+    def similarity_search(self,query:str,repo_url:str,k:int=5) -> List[Document]:
         try:
-            logger.debug("Searching:{query}")
+            logger.debug("Searching:{query} in {repo_url}")
+
+            # This forces pgvector to ONLY scan items belonging repository
+            search_filter = {"repo_url": repo_url}
+
             results = self.client.similarity_search(query,k=k)
             logger.info(f"Found {len(results)} results")
             return results
         except Exception as e:
             logger.error(f"Search failed: {str(e)}")
             raise DatabaseError(f"Vector search failed: {str(e)}")
+
+    """Delete only a specific repository's records (NEW METHOD)"""
+    def delete_by_repo(self, repo_url: str) -> None:
+        try:
+            # filter by metadata fields using dictionary format
+            self.client.delete(filter={"repo_url": repo_url})
+            logger.info(f"Successfully cleared old chunks for: {repo_url}")
+        except Exception as e:
+            # If the entire collection table was dropped,
+            # catch it here and force PGVector to rebuild the empty table structure!
+            if "Collection not found" in str(e) or "relation" in str(e):
+                logger.info("Collection table missing. Re-initializing empty collection structures...")
+                self.client.create_collection()
+            else:
+                logger.error(f"Failed to delete records for {repo_url}: {str(e)}")
 
 
     """Delete collection for re-ingestion"""

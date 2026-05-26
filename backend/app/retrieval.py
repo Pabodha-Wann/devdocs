@@ -5,7 +5,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def search_codebase(query:str,k : int=5)-> List[Dict[str,str]]:
+def search_codebase(query:str,repo_url: str,k : int=5)-> List[Dict[str,str]]:
     print(f"Searching database for: `{query}`")
 
     if not query or len(query.strip()) < 3:
@@ -18,7 +18,7 @@ def search_codebase(query:str,k : int=5)-> List[Dict[str,str]]:
         logger.debug(f"Searching: {query}")
 
         # Perform a mathemetical similarity
-        results = db.similarity_search(query,k=k)
+        results = db.similarity_search(query,repo_url=repo_url,k=k)
 
         # format
         formatted_results = []

@@ -129,12 +129,35 @@ def extract_code_files(repo_path: str) -> list[Document]:
             raise RepositoryEmptyError(f"Failed to extract files: {str(e)}")    
 
 
-# Split docments into chunks
-def chunk_documents(documents: list[Document]) -> list[Document]:
+# Split docments into chunks with metadata
+def chunk_documents(documents: list[Document],url: str) -> list[Document]:
          
     try:
         logger.info(f"Chunking {len(documents)} documents...")
        
+        enhanced_docs = []
+
+        for doc in documents:
+            file_path = doc.metadata["source"]
+
+            # Extract folder info
+            folders = os.path.dirname(file_path) # Get all folders except filename
+            file_name = os.path.basename(file_path)
+
+            # Create enhanced document with path info
+            enhanced_doc = Document(
+                page_content=f"FILE: {file_path}\nFOLDER: {'/'.join(folders)}\n\n{doc.page_content}",
+                metadata={
+                    "source": file_path,
+                    "folder": "/".join(folders),
+                    "file_name": file_name,
+                    "depth": len(folders),  # How nested is this file
+                    "repo_url": url
+                }
+            )
+
+            enhanced_docs.append(enhanced_doc)
+
 
         # Splitting
         splitter = RecursiveCharacterTextSplitter(
@@ -142,7 +165,7 @@ def chunk_documents(documents: list[Document]) -> list[Document]:
             chunk_overlap=CHUNK_OVERLAP,
             separators=["\n\nclass ", "\n\ndef ", "\n\n", "\n", " ", ""]
         )
-        chunks = splitter.split_documents(documents)
+        chunks = splitter.split_documents(enhanced_docs)
         logger.info(f"Created {len(chunks)} chunks")
         return chunks
 
@@ -166,16 +189,18 @@ def clone_and_embed(url:str) -> Tuple[int,int]:
         num_files= len(documents)
 
         # Chunk
-        chunks = chunk_documents(documents)
+        chunks = chunk_documents(documents,url)
 
 
 
         # Embedding
         logger.info(f"Generating embeddings for {len(chunks)} chunks...")
 
-    
+        logger.info(f"Checking for existing data for {url} to clear duplicates...")
+        db.delete_by_repo(repo_url=url)
+
         # Send chunks to HuggingFace/Neon in batches of 50 to avoid Payload limits
-        db.recreate_collection()
+        # db.recreate_collection()
         for i in range(0, len(chunks), BATCH_SIZE):
             batch = chunks[i : i + BATCH_SIZE]
             print(f"Uploading batch {(i//BATCH_SIZE) + 1}...")
