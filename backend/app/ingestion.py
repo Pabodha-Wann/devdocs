@@ -54,9 +54,6 @@ def clone_repository(url:str) -> str:
     if not isinstance(url, str):
         raise InvalidRepositoryError("Repository URL must be a string")
 
-    db.delete_collection()
-
-    print("Cleared previous repo data!")
 
 
     temp_dir = tempfile.mkdtemp(prefix="devdocs_repo_")
@@ -122,7 +119,8 @@ def extract_code_files(repo_path: str) -> list[Document]:
                     except Exception as e:
                         logger.debug(f"Error reading {file_path}: {str(e)}")
                         continue
-
+            
+            return docs
 
         except RepositoryEmptyError:
             raise
@@ -160,9 +158,6 @@ def clone_and_embed(url:str) -> Tuple[int,int]:
     repo_path = None
 
     try:
-        # clear previos data
-        db.delete_collection()
-
         # Clone
         repo_path = clone_repository(url)
 
@@ -180,7 +175,7 @@ def clone_and_embed(url:str) -> Tuple[int,int]:
 
     
         # Send chunks to HuggingFace/Neon in batches of 50 to avoid Payload limits
-        
+        db.recreate_collection()
         for i in range(0, len(chunks), BATCH_SIZE):
             batch = chunks[i : i + BATCH_SIZE]
             print(f"Uploading batch {(i//BATCH_SIZE) + 1}...")

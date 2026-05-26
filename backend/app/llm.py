@@ -24,71 +24,71 @@ class LLMClient:
             raise LLMError(f"LLM initialization failed: {str(e)}")
 
 # Generate answers with code context
-def generate_answer(
-        self,
-        chat_history:List[Dict[str,str]],
-        retrieved_chunks:List[Dict[str,str]]
-        ) -> str:
-    
-    print("Formatting code for the AI...")
-
-    try:
-        if not retrieved_chunks:
-            return "I couldn't find relevent code for your question"
+    def generate_answer(
+            self,
+            chat_history:List[Dict[str,str]],
+            retrieved_chunks:List[Dict[str,str]]
+            ) -> str:
         
-        # format context
-        context_text = "\n\n---\n\n".join([
-            f"File: {chunk['source']}\n{chunk['content']}\n```"
-            for chunk in retrieved_chunks
-        ])
+        print("Formatting code for the AI...")
 
-        # convert history ist into readable text
-        history_text = ""
-        for msg in chat_history[:-1]: #skip last message
-            role = "Human" if msg["role"] == "user" else "AI"
-            history_text += f"{role}:{msg['content']}\n"
-
-        current_question = chat_history[-1]["content"]
-
-        prompt_template ="""
-            You are a senior software engineer analyzing a codebase.
-            Use the following pieces of retrieved code to answer the user's question.
-
-            You have been provided with the Chat History of this conversation. Use it to understand context (like if the user says "how do I run it?", use the history to figure out what "it" is).
-
-            If the answer is not in the code provided, just say "I cannot find the answer in the retrieved code files."
-            Do not guess or make up code. 
-            Explain your answer clearly and reference the file names when applicable.
-
-            Chat History:
-            {history}
+        try:
+            if not retrieved_chunks:
+                return "I couldn't find relevent code for your question"
             
-            Context Code:
-            {context}
+            # format context
+            context_text = "\n\n---\n\n".join([
+                f"File: {chunk['source']}\n{chunk['content']}\n```"
+                for chunk in retrieved_chunks
+            ])
 
-            User Question:{question}
+            # convert history ist into readable text
+            history_text = ""
+            for msg in chat_history[:-1]: #skip last message
+                role = "Human" if msg["role"] == "user" else "AI"
+                history_text += f"{role}:{msg['content']}\n"
 
-            Answer:"""
+            current_question = chat_history[-1]["content"]
 
-        prompt = PromptTemplate(
-            template=prompt_template,
-            input_variables=["history","context","question"]
-        )
+            prompt_template ="""
+                You are a senior software engineer analyzing a codebase.
+                Use the following pieces of retrieved code to answer the user's question.
 
-        
-        chain = prompt | self.client
+                You have been provided with the Chat History of this conversation. Use it to understand context (like if the user says "how do I run it?", use the history to figure out what "it" is).
 
-        response = chain.invoke({
-            "history":history_text,
-            "context":context_text,
-            "question":current_question
-        })
+                If the answer is not in the code provided, just say "I cannot find the answer in the retrieved code files."
+                Do not guess or make up code. 
+                Explain your answer clearly and reference the file names when applicable.
 
-        return response.content
+                Chat History:
+                {history}
+                
+                Context Code:
+                {context}
 
-    except Exception as e:
-        logger.error(f"LLM error: {str(e)}")
-        raise LLMError(f"failed to generate answer: {str(e)}")
+                User Question:{question}
+
+                Answer:"""
+
+            prompt = PromptTemplate(
+                template=prompt_template,
+                input_variables=["history","context","question"]
+            )
+
+            
+            chain = prompt | self.client
+
+            response = chain.invoke({
+                "history":history_text,
+                "context":context_text,
+                "question":current_question
+            })
+
+            return response.content
+
+        except Exception as e:
+            logger.error(f"LLM error: {str(e)}")
+            raise LLMError(f"failed to generate answer: {str(e)}")
 
 
 llm = LLMClient()

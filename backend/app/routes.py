@@ -89,11 +89,12 @@ async def ingest_repo(request:IngestRepoRequest):
     
         files_scanned,chunks_created = clone_and_embed(request.url)
 
-        return{
-            "message":"Repository successfully embedded into pgVector Store!",
-            "files_scanned": files_scanned,
-            "chunks_created": chunks_created
-        }
+        return IngestRepoResponse(
+            message ="Repository successfully embedded into pgVector Store!",
+            files_scanned = files_scanned,
+            chunks_created =  chunks_created,
+            status = "success"
+        )
     
     except DevDocsError as e:
         logger.warning(f"[{request_id}] {e.code}")

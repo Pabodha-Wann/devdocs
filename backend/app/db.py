@@ -21,7 +21,8 @@ class VectorDB:
             self.client = PGVector(
                 embeddings=self.embeddings,
                 collection_name="code_collection",
-                connection=DATABASE_URL
+                connection=DATABASE_URL,
+                pre_delete_collection=False
             )
 
             logger.info("Vector DB initialized")
@@ -33,7 +34,7 @@ class VectorDB:
 
 
     """Add documents to vector DB"""
-    def add_document(self,documents:List[Document])->None:
+    def add_documents(self,documents:List[Document])->None:
         try:
             self.client.add_documents(documents)
             logger.info(f"Added {len(documents)} documents")
@@ -62,6 +63,20 @@ class VectorDB:
         except Exception as e:
             logger.error(f"Failed to delete collection: {str(e)}")
             raise DatabaseError(f"Failed to clear collection: {str(e)}")
+
+    """Recreate collection after deletion"""
+    def recreate_collection(self) -> None:
+        try:
+            self.client = PGVector(
+                embeddings=self.embeddings,
+                collection_name="code_collection",
+                connection=DATABASE_URL,
+                pre_delete_collection=True
+            )
+            logger.info("Collection recreated")
+        except Exception as e:
+            logger.error(f"Failed to recreate collection: {str(e)}")
+            raise DatabaseError(f"Failed to recreate collection: {str(e)}")
 
 
 db = VectorDB()
