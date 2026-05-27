@@ -19,6 +19,7 @@ export default function Home() {
   const handleIngest = async () => {
     if (!repoUrl.trim()) return;
     
+    const targetUrl = repoUrl.trim();
     setIsIngesting(true);
     setIngestMessage("⏳ Waking up serverless database engines and cloning files... this may take up to a minute.");
 
@@ -26,14 +27,14 @@ export default function Home() {
       const response = await fetch("/api/ingest", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: repoUrl }),
+        body: JSON.stringify({ url: targetUrl }),
       });
 
       const data = await response.json();
 
       if (response.ok) {
         setIngestMessage(`Success! Embedded ${data.files_scanned} files into ${data.chunks_created} chunks.`);
-        setActiveRepo(repoUrl);
+        setActiveRepo(targetUrl);
         setMessages([]);
       } else {
         setIngestMessage("Failed to connect to server.");
@@ -89,6 +90,12 @@ export default function Home() {
           <div className="flex items-center gap-3">
             <div className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></div>
             <span className="font-semibold text-lg tracking-tight text-zinc-800">Enterprise RAG Assistant</span>
+            {/* 🌟 ADD THIS NEW BADGE */}
+            {activeRepo && (
+              <span className="text-xs bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-md border border-emerald-200 font-mono truncate max-w-[250px]">
+                Active: {activeRepo.split("/").pop()}
+              </span>
+            )}
           </div>
           <span className="text-xs font-medium bg-zinc-100 text-zinc-600 px-3 py-1.5 rounded-full border border-zinc-200/60 shadow-sm">
             pgVector + LLaMA 3
