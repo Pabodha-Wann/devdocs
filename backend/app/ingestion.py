@@ -236,6 +236,15 @@ def clone_and_embed(url:str) -> Tuple[int,int]:
     repo_path = None
 
     try:
+        # Warm up the Neon serverless database before doing any real work.
+        # Neon can take a few seconds to wake from a cold start, and without
+        # this, the first ingestion attempt often fails with a timeout error.
+        logger.info("Pinging database to ensure connection is warm...")
+        try:
+            db.similarity_search("warmup ping", repo_url="warmup", k=1)
+        except Exception:
+            pass  # Ignore errors — this is just a warm-up, not critical
+
         # Clone
         repo_path = clone_repository(url)
 
