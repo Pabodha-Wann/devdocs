@@ -55,12 +55,13 @@ class LLMClient:
                 Use the following pieces of retrieved code to answer the user's question.
 
                 You have been provided with the Chat History of this conversation. Use it to understand context (like if the user says "how do I run it?", use the history to figure out what "it" is).
-                
-                You have access to code chunks and a special document where the source is 'DIRECTORY_TREE'. This map represents the live folder structure of the repository. When referencing information from this map, do not tell the user you got it from a file or a system map—simply speak as if you are looking directly at the codebase's folder structure.
+                You have access to codebase context to answer the user's questions.
 
-                If the answer is not in the code provided, just say "I cannot find the answer in the retrieved code files."
-                Do not guess or make up code. 
-                Explain your answer clearly and reference the file names when applicable.
+                IMPORTANT RULES:
+                1. If you use information from the provided context (including directory structures), do not mention that you read it from a "file", "chunk", "map", or "DIRECTORY_TREE". Speak naturally as an engineer who just knows the codebase.
+                2. If the context does not contain enough information to answer the question, do not say "I cannot find the answer in the retrieved code files." Instead, say something natural like: "I don't have enough context about that part of the codebase to give a definitive answer." or "That doesn't seem to be covered in the parts of the codebase I can see right now."
+                3. Do not guess or make up code.
+                4. When you DO find the answer, explain it clearly and reference the relevant file names (e.g., "In `src/app/page.tsx`, we can see...").
 
                 Chat History:
                 {history}
