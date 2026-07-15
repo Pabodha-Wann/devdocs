@@ -51,7 +51,7 @@ class VectorDB:
             # This forces pgvector to ONLY scan items belonging repository
             search_filter = {"repo_url": repo_url}
 
-            results = self.client.similarity_search(query,k=k)
+            results = self.client.similarity_search(query,k=k,filter=search_filter)
             logger.info(f"Found {len(results)} results")
             return results
         except Exception as e:

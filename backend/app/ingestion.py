@@ -78,11 +78,43 @@ def clone_repository(url:str) -> str:
             raise RepositoryCloneError(f"Failed to clone repository: {str(e)}. Check that the URL is a valid git repository.")
 
 
+# Generate directory tree string
+def generate_directory_tree(repo_path: str) -> str:
+    tree_lines = ["[REPOSITORY DIRECTORY STRUCTURE AND FILE TREE]", "This document shows the complete folder and file structure of the repository.", ""]
+    
+    for root, dirs, files in os.walk(repo_path):
+        # Filter blocked directories in-place to avoid walking them
+        dirs[:] = [d for d in dirs if not any(blocked in os.path.join(root, d).split(os.sep) for blocked in BLOCKED_DIRS)]
+        
+        rel_path = os.path.relpath(root, repo_path)
+        level = 0 if rel_path == '.' else rel_path.count(os.sep) + 1
+            
+        indent = ' ' * 4 * level
+        if rel_path != '.':
+            tree_lines.append(f"{indent}[DIR] {os.path.basename(root)}/")
+        else:
+            tree_lines.append("[ROOT]")
+            
+        sub_indent = ' ' * 4 * (level + 1)
+        for f in sorted(files):
+            if f not in IGNORED_FILES and not is_binary_file(os.path.join(root, f)):
+                tree_lines.append(f"{sub_indent}{f}")
+                
+    return "\n".join(tree_lines)
+
+
 # Extract readable code files from repo
 def extract_code_files(repo_path: str) -> list[Document]:
         docs = []
 
         try:
+            # Generate and add directory tree as the first document
+            tree_content = generate_directory_tree(repo_path)
+            docs.append(Document(
+                page_content=tree_content,
+                metadata={"source": "DIRECTORY_TREE.txt"}
+            ))
+
             for root,_,files in os.walk(repo_path):
                 if any(blocked in root.split(os.sep) for blocked in BLOCKED_DIRS):
                     continue
@@ -148,14 +180,18 @@ def chunk_documents(documents: list[Document],url: str) -> list[Document]:
             file_name = os.path.basename(file_path)
             ext = os.path.splitext(file_name)[1].lower()
 
+            # Fix: Standardize folder path and correctly calculate depth
+            folder_path = folders.replace(os.sep, "/") if folders else ""
+            depth = len(folder_path.split("/")) if folder_path else 0
+
             # Create enhanced document with path info
             enhanced_doc = Document(
-                page_content=f"FILE: {file_path}\nFOLDER: {'/'.join(folders)}\n\n{doc.page_content}",
+                page_content=f"FILE: {file_path}\nFOLDER: {folder_path}\n\n{doc.page_content}",
                 metadata={
                     "source": file_path,
-                    "folder": "/".join(folders),
+                    "folder": folder_path,
                     "file_name": file_name,
-                    "depth": len(folders),  # How nested is this file
+                    "depth": depth,  # How nested is this file
                     "repo_url": url
                 }
             )

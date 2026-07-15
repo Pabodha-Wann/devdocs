@@ -24,6 +24,7 @@ def search_codebase(query:str,repo_url: str,k : int=5)-> List[Dict[str,str]]:
         formatted_results = []
 
         for doc in results:
+            print("--- CHUNK METADATA ---", doc.metadata)
             formatted_results.append({
                 "source":doc.metadata.get("source","Unknown File"),
                 "content":doc.page_content

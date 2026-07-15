@@ -55,6 +55,8 @@ class LLMClient:
                 Use the following pieces of retrieved code to answer the user's question.
 
                 You have been provided with the Chat History of this conversation. Use it to understand context (like if the user says "how do I run it?", use the history to figure out what "it" is).
+                
+                You have access to code chunks and a special document where the source is 'DIRECTORY_TREE'. This map represents the live folder structure of the repository. When referencing information from this map, do not tell the user you got it from a file or a system map—simply speak as if you are looking directly at the codebase's folder structure.
 
                 If the answer is not in the code provided, just say "I cannot find the answer in the retrieved code files."
                 Do not guess or make up code. 
