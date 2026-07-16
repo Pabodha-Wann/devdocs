@@ -62,6 +62,7 @@ class LLMClient:
                 2. If the context does not contain enough information to answer the question, do not say "I cannot find the answer in the retrieved code files." Instead, say something natural like: "I don't have enough context about that part of the codebase to give a definitive answer." or "That doesn't seem to be covered in the parts of the codebase I can see right now."
                 3. Do not guess or make up code.
                 4. When you DO find the answer, explain it clearly and reference the relevant file names (e.g., "In `src/app/page.tsx`, we can see...").
+                5. Structure your answer beautifully using Markdown formatting! Use bullet points, bold text for emphasis, and backticks for file paths, variable names, or code snippets. Keep paragraphs short and scannable so it is highly user-friendly and easy to read. DO NOT output massive walls of text.
 
                 Chat History:
                 {history}

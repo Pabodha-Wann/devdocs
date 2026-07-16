@@ -36,7 +36,9 @@ export default function Home() {
         setActiveRepo(targetUrl);
         setMessages([]);
       } else {
-        setIngestMessage("Ingestion failed. Please check the URL and try again.");
+        // We now extract the EXACT error message from the backend!
+        const errorMessage = data.detail || data.error || "Unknown error occurred";
+        setIngestMessage(`Ingestion failed: ${errorMessage}`);
       }
     } catch {
       setIngestMessage("Could not connect to the server. Is the backend running?");
