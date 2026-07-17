@@ -3,6 +3,7 @@ from pydantic import BaseModel,field_validator,Field
 from typing import List,Dict
 import re
 import logging
+import groq
 from uuid import uuid4
 
 from config import GITHUB_URL_PATTERN
@@ -10,6 +11,7 @@ from exceptions import DevDocsError,ERROR_STATUS_CODES
 from app.ingestion import clone_and_embed
 from app.retrieval import search_codebase
 from app.llm import llm
+from app.agent import run_agent
 
 
 logger = logging.getLogger(__name__)
@@ -136,26 +138,14 @@ async def chat_with_repo(request: ChatWithRepoRequest):
         # Convert Pydantic models to dicts
         messages = [msg.model_dump() for msg in request.messages]
 
-        current_question = messages[-1]["content"]
-        sources = search_codebase(query=current_question,repo_url=request.repo_url)
-
-        if not sources:
-            return ChatResponse(
-                answer="I couldn't find any code related to that question.",
-                sources= []
-            )
-
-     
-        final_answer = llm.generate_answer(messages,sources)
+        # Use the new LangGraph Agent instead of standard RAG
+        final_answer = run_agent(messages, request.repo_url)
 
         logger.info(f"[{request_id}] Success")
         
         return ChatResponse(
-            answer = final_answer,
-            sources =[
-                CodeChunk(source=s["source"], content=s["content"])
-                for s in sources
-            ]
+            answer=final_answer,
+            sources=[]
         )
 
     except DevDocsError as e:
