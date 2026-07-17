@@ -90,3 +90,11 @@ To run the RAG evaluation tests:
 ```bash
 deepeval test run tests/test_rag_evaluation.py
 ```
+
+## 🔬 Future Roadmap (Experimental)
+
+While the current Agentic RAG architecture works well using vector similarity and directory tree mapping, we are exploring deeper static analysis for future versions. 
+
+**Experimental Goals:**
+- **AST (Abstract Syntax Tree) Parsing:** Using tools like `tree-sitter` to chunk code flawlessly by exact functions and classes rather than character counts.
+- **Graph RAG / Knowledge Graphs:** Mapping function calls, imports, and dependencies into a Graph Database (like Neo4j) to allow the LLM to traverse exact execution paths and reason about deep architectural changes.
