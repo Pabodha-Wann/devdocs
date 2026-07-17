@@ -6,34 +6,37 @@ An AI-powered documentation assistant that uses RAG (Retrieval-Augmented Generat
 
 - **Frontend:** Next.js, Tailwind CSS
 - **Backend:** FastAPI (Python)
-- **AI/LLM:** Groq (Llama 3), HuggingFace Inference API (Embeddings)
+- **AI/LLM:** Google GenAI (Gemini 3.1 Flash Lite), HuggingFace Inference API (Embeddings)
 - **Database:** Neon (PostgreSQL) with `pgvector`
-- **Orchestration:** LangChain
+- **Orchestration:** LangChain & LangGraph (Agentic Workflow)
 
-## 🏗️ Architecture
+## 🏗️ Architecture (Agentic RAG)
 
-1. **Ingestion:** The backend clones a repo, chunks the code, generates embeddings via HuggingFace, and stores them in Neon.
-2. **Retrieval:** When a user asks a question, the system finds relevant code snippets using vector similarity search.
-3. **Generation:** Groq processes the question and the retrieved code to provide an accurate technical answer.
+1. **Ingestion:** The backend clones a repo, generates a directory tree map, chunks the code, generates embeddings via HuggingFace, and stores them in Neon.
+2. **Reasoning:** When a user asks a question, a LangGraph ReAct agent parses the intent and decides which tools to use.
+3. **Tool Execution:** The agent dynamically uses `directory_tree_tool`, `search_codebase_tool`, and `read_file_tool` to explore the codebase.
+4. **Generation:** Gemini synthesizes the tool outputs to provide an accurate, highly contextualized technical answer.
 
 ```mermaid
 graph TD
     subgraph Ingestion_Phase
-    A[Source Code] --> B[Text Chunking]
+    A[Source Code] --> B[Text Chunking & Directory Mapping]
     B --> C[HuggingFace Embedding - 384d]
     C --> D[(Neon pgvector Store)]
     end
 
-    subgraph Retrieval_Phase
-    E[User Query] --> F[Embed Query]
-    F --> G{Cosine Similarity Search}
-    D -.-> G
+    subgraph Agentic_Retrieval_Phase
+    E[User Query] --> F{LangGraph ReAct Agent}
+    F -->|Tool Call| G[directory_tree_tool]
+    F -->|Tool Call| H[search_codebase_tool]
+    F -->|Tool Call| I[read_file_tool]
+    H -.-> D
+    I -.-> D
     end
 
     subgraph Generation_Phase
-    G --> H[Top-K Relevant Chunks]
-    H --> I[Groq Llama 3 LLM]
-    I --> J[Final Answer + Sources]
+    F --> J[Gemini 3.1 Flash Lite]
+    J --> K[Final Contextual Answer]
     end
 ```
 
@@ -61,6 +64,23 @@ graph TD
 - **Frontend:** Hosted on Vercel.
 - **Database:** Managed by Neon.
 
+## 🧪 Testing
+
+The backend includes a suite of automated tests using `pytest`.
+
+### Unit Tests
+To run the standard tests:
+1. Ensure your virtual environment is active.
+2. Run `pytest` in the `/backend` directory:
+```bash
+cd backend
+pytest -v
 ```
 
+### RAG Evaluation (DeepEval)
+We use **DeepEval** to quantitatively evaluate the LLM's answers for **Faithfulness** (no hallucinations) and **Answer Relevancy**. 
+
+To run the RAG evaluation tests:
+```bash
+deepeval test run tests/test_rag_evaluation.py
 ```
