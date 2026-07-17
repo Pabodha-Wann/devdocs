@@ -8,8 +8,8 @@ load_dotenv()
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 # LLM
-GROQ_API_KEY = os.getenv("GROQ_API_KEY")
-GROQ_MODEL = "llama-3.3-70b-versatile"
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+GEMINI_MODEL = "gemini-3.1-flash-lite"
 
 
 # Emedding

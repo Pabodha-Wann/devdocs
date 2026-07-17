@@ -1,24 +1,24 @@
 from typing import List, Dict
-from langchain_groq import ChatGroq
+from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import PromptTemplate
 import logging
 
-from config import GROQ_API_KEY,GROQ_MODEL
+from config import GEMINI_API_KEY, GEMINI_MODEL
 from exceptions import LLMError
 
 logger = logging.getLogger(__name__)
 
-# Groq Wraper
+# Gemini Wrapper
 class LLMClient:
 
     def __init__(self):
         try:
-            self.client = ChatGroq(
+            self.client = ChatGoogleGenerativeAI(
                 temperature=0.3,
-                model=GROQ_MODEL,
-                api_key=GROQ_API_KEY
+                model=GEMINI_MODEL,
+                google_api_key=GEMINI_API_KEY
             )
-            logger.info(f"LLM initialized: {GROQ_MODEL}")
+            logger.info(f"LLM initialized: {GEMINI_MODEL}")
         except Exception as e:
             logger.error(f"LLM init error: {str(e)}")
             raise LLMError(f"LLM initialization failed: {str(e)}")

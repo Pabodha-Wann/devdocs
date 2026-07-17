@@ -53,15 +53,16 @@ def test_rag_quality_evaluation(user_query, expected_output):
     # Setup test data
     repo_url = "https://github.com/Pabodha-Wann/Academia" # repo is ingested first!
     
-    # Run YOUR real RAG system
-    # We use search_codebase because it formats the chunks properly
+    # We run a mock retrieval just to supply DeepEval with context.
+    # The actual agent will do its own retrieval!
     chunks = search_codebase(user_query, repo_url)
-    
-    chat_history = [{"role": "user", "content": user_query}]
-    actual_answer = llm.generate_answer(chat_history, chunks)
-    
-    # Extract just the raw text content from the chunks for DeepEval
     retrieved_context = [chunk["content"] for chunk in chunks]
+
+    # Run the Agentic RAG
+    from app.agent import run_agent
+    chat_history = [{"role": "user", "content": user_query}]
+    actual_answer = run_agent(chat_history, repo_url)
+
 
     # Create the DeepEval Test Case
     test_case = LLMTestCase(

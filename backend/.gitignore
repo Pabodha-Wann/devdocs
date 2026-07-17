@@ -8,3 +8,4 @@ __pycache__/
 .idea/
 devdocs_repo_*/
 .deepeval/
+backend_errors.log
