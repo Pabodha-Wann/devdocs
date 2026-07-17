@@ -78,7 +78,13 @@ pytest -v
 ```
 
 ### RAG Evaluation (DeepEval)
-We use **DeepEval** to quantitatively evaluate the LLM's answers for **Faithfulness** (no hallucinations) and **Answer Relevancy**. 
+We use **DeepEval** to quantitatively evaluate the Agentic RAG performance.
+
+We evaluate the system on two main metrics:
+- **Faithfulness (No Hallucinations):** Ensures the generated answer is strictly derived from the retrieved GitHub codebase context.
+- **Answer Relevancy:** Ensures the generated answer directly addresses the user's question without unnecessary tangents.
+
+The evaluation process leverages our own `GeminiJudge` (powered by Google GenAI Gemini 3.1 Flash Lite) to act as an impartial LLM judge, grading the RAG pipeline automatically on various parameterized test cases (e.g. asking about frontend architecture, database usage, and folder structures).
 
 To run the RAG evaluation tests:
 ```bash
